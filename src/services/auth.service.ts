@@ -150,6 +150,114 @@ export class AuthService {
     }
   }
 
+  async login(loginData: any): Promise<any> {
+    const { email, password, otp } = loginData;
+
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.password) {
+      throw new Error('Invalid credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error('Invalid credentials');
+    }
+
+    if (user.role === 'admin') {
+      if (!otp) {
+        const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        await redis.setex(`admin_otp:${email}`, 300, emailOtp); // 5 mins
+        
+        // Log the OTP for easy local testing
+        console.log(`\n========================================`);
+        console.log(`🔐 ADMIN LOGIN OTP FOR ${email}: ${emailOtp}`);
+        console.log(`========================================\n`);
+
+        await emailQueue.add('send-otp', {
+          type: 'sendOTP',
+          payload: { email, fullName: user.fullName || 'Admin', otp: emailOtp }
+        });
+        return { requiresOtp: true, message: 'OTP sent to email for admin verification' };
+      } else {
+        const storedOtp = await redis.get(`admin_otp:${email}`);
+        if (!storedOtp || storedOtp !== otp) {
+          throw new Error('Invalid or expired OTP');
+        }
+        await redis.del(`admin_otp:${email}`);
+      }
+    }
+
+    const { accessToken, refreshToken } = this.generateTokens(user);
+    const { password: _, ...userToReturn } = user;
+
+    return { user: userToReturn, accessToken, refreshToken, message: 'Login successful' };
+  }
+
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    if (!email) throw new Error('Email is required');
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new Error('No account found with this email');
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await redis.setex(`reset_otp:${email}`, 600, otp); // 10 mins
+
+    // Log the OTP for easy local testing
+    console.log(`\n========================================`);
+    console.log(`🔑 PASSWORD RESET OTP FOR ${email}: ${otp}`);
+    console.log(`========================================\n`);
+
+    await emailQueue.add('send-otp', {
+      type: 'sendOTP',
+      payload: { email, fullName: user.fullName || 'User', otp }
+    });
+
+    return { success: true, message: 'Password reset OTP sent to your email' };
+  }
+
+  async verifyResetOtp(email: string, otp: string): Promise<{ success: boolean; message: string; resetToken?: string }> {
+    if (!email || !otp) throw new Error('Email and OTP are required');
+
+    const storedOtp = await redis.get(`reset_otp:${email}`);
+    if (!storedOtp || storedOtp !== otp) {
+      throw new Error('Invalid or expired OTP');
+    }
+
+    await redis.del(`reset_otp:${email}`);
+    
+    // Generate a temporary reset token
+    const resetToken = jwt.sign({ email }, config.JWT_ACCESS_SECRET, { expiresIn: '15m' });
+    await redis.setex(`reset_token:${email}`, 900, resetToken); // 15 mins
+
+    return { success: true, message: 'OTP verified successfully', resetToken };
+  }
+
+  async resetPassword(email: string, resetToken: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    if (!email || !resetToken || !newPassword) throw new Error('All fields are required');
+
+    const storedToken = await redis.get(`reset_token:${email}`);
+    if (!storedToken || storedToken !== resetToken) {
+      throw new Error('Invalid or expired reset token');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    await prisma.user.update({
+      where: { email },
+      data: { password: hashedPassword }
+    });
+
+    await redis.del(`reset_token:${email}`);
+
+    return { success: true, message: 'Password reset successfully' };
+  }
+
   private generateTokens(user: any): { accessToken: string; refreshToken: string } {
     const accessToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role },

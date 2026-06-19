@@ -44,6 +44,38 @@ export class AuthController {
     }
   }
 
+  async login(req: Request, res: Response) {
+    try {
+      const result = await authService.login(req.body);
+      
+      if (result.requiresOtp) {
+        res.status(200).json({
+          success: true,
+          message: result.message,
+          data: { requiresOtp: true },
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: {
+          user: result.user,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        },
+      });
+    } catch (error: any) {
+      if (['Email and password are required', 'Invalid credentials', 'Invalid or expired OTP'].includes(error.message)) {
+        res.status(400).json({ success: false, message: error.message });
+      } else {
+        console.error('Login error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+      }
+    }
+  }
+
   async verifyOtp(req: Request, res: Response) {
     try {
       const { email, otp } = req.body;
@@ -101,6 +133,35 @@ export class AuthController {
       });
     } catch (error: any) {
       res.status(401).json({ success: false, message: error.message });
+    }
+  }
+  async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      const result = await authService.forgotPassword(email);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
+  async verifyResetOtp(req: Request, res: Response) {
+    try {
+      const { email, otp } = req.body;
+      const result = await authService.verifyResetOtp(email, otp);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
+  async resetPassword(req: Request, res: Response) {
+    try {
+      const { email, resetToken, newPassword } = req.body;
+      const result = await authService.resetPassword(email, resetToken, newPassword);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ success: false, message: error.message });
     }
   }
 }
