@@ -98,6 +98,16 @@ export class AuthService {
       payload: { email: newUser.email, fullName: newUser.fullName || 'User', userId: newUser.id }
     });
 
+    // Notify all connected admins about the new pending verification
+    const { emitNewVerification } = await import('./socket.service');
+    emitNewVerification({
+      userId: newUser.id,
+      fullName: newUser.fullName,
+      companyName: newUser.companyName,
+      userType: newUser.userType,
+      createdAt: newUser.createdAt.toISOString(),
+    });
+
     await redis.del(verifiedKey);
 
     const { accessToken, refreshToken } = this.generateTokens(newUser);

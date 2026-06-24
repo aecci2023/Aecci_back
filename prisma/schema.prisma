@@ -82,8 +82,9 @@ model User {
   productCatalogue       String[]
   documents              String[]
 
-  kycStatus String @default("pending_verification") // pending_verification, approved, active, rejected  kycRejectionReason String?
-  role      String @default("user") // user, admin, partner
+  kycStatus            String  @default("pending_verification") // pending_verification, approved, active, rejected
+  kycRejectionReason   String?
+  role                 String  @default("user") // user, admin, partner
 
   // Post-Onboarding Partner & Pricing Flow
   partnerId           String?   @db.ObjectId

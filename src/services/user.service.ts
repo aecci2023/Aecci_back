@@ -121,11 +121,26 @@ export class UserService {
     });
 
     const { emailService } = await import('./email.service');
+    const { emitToUser } = await import('./socket.service');
 
     if (kycStatus === 'approved') {
       await emailService.sendKycApproved(user.email, user.fullName || 'Valued Member');
+      emitToUser(user.id, {
+        title: 'KYC Approved',
+        message: 'Your KYC verification has been approved. You now have access to your dashboard.',
+        type: 'success',
+        link: '/dashboard',
+        createdAt: new Date().toISOString(),
+      });
     } else if (kycStatus === 'rejected') {
       await emailService.sendKycRejected(user.email, user.fullName || 'Applicant', reason || 'Does not meet criteria.');
+      emitToUser(user.id, {
+        title: 'KYC Rejected',
+        message: reason || 'Your KYC application was not approved. Please check your email for details.',
+        type: 'error',
+        link: '/dashboard',
+        createdAt: new Date().toISOString(),
+      });
     }
 
     return user;
