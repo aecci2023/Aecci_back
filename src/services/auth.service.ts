@@ -177,6 +177,81 @@ export class AuthService {
     return userToReturn;
   }
 
+  async partnerSignup(userData: any): Promise<{ user: any; accessToken: string; refreshToken: string; message: string }> {
+    const { email, password, ...restData } = userData;
+
+    if (!email || !password) throw new Error('Email and password are required');
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) throw new Error('User already exists');
+
+    const verifiedKey = `otp_verified:${email}`;
+    const isVerified = await redis.get(verifiedKey);
+    if (!isVerified) throw new Error('Email not verified. Please verify OTP first.');
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Split languagesSpoken if sent as comma string
+    if (typeof restData.languagesSpoken === 'string') {
+      restData.languagesSpoken = restData.languagesSpoken.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    if (typeof restData.expertiseCountries === 'string') {
+      restData.expertiseCountries = restData.expertiseCountries.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    if (typeof restData.expertiseSectors === 'string') {
+      restData.expertiseSectors = restData.expertiseSectors.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        fullName: restData.fullName,
+        mobileNumber: restData.mobileNumber,
+        country: restData.country,
+        nationality: restData.nationality,
+        professionalTitle: restData.professionalTitle,
+        yearsOfExperience: restData.yearsOfExperience,
+        languagesSpoken: restData.languagesSpoken || [],
+        linkedinProfileUrl: restData.linkedinProfileUrl || null,
+        websiteUrl: restData.websiteUrl || null,
+        profilePicture: restData.profilePicture || null,
+        isEmailVerified: true,
+        role: 'partner',
+        kycStatus: 'pending_verification',
+        applicationNumber: `AECCI-PARTNER-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
+      },
+    });
+
+    await prisma.partnerProfile.create({
+      data: {
+        userId: newUser.id,
+        organization: restData.organization || '',
+        expertiseCountries: restData.expertiseCountries || [],
+        expertiseSectors: restData.expertiseSectors || [],
+        bio: restData.bio || null,
+        motivation: restData.motivation || null,
+        references: restData.references || null,
+        governmentId: restData.governmentId || null,
+        professionalCert: restData.professionalCert || null,
+        businessProof: restData.businessProof || null,
+        status: 'pending_review',
+      },
+    });
+
+    await emailQueue.add('registration-success', {
+      type: 'sendRegistrationSubmitted',
+      payload: { email: newUser.email, fullName: newUser.fullName || 'Partner', userId: newUser.id }
+    });
+
+    await redis.del(verifiedKey);
+
+    const { accessToken, refreshToken } = this.generateTokens(newUser);
+    const { password: _, ...userToReturn } = newUser;
+
+    return { user: userToReturn, accessToken, refreshToken, message: 'Partner registration submitted successfully' };
+  }
+
   async refreshAccess(refreshToken: string): Promise<{ accessToken: string }> {
     try {
       const secret = config.JWT_REFRESH_SECRET;

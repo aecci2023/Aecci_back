@@ -21,6 +21,28 @@ export class AuthController {
     }
   }
 
+  async partnerSignup(req: Request, res: Response) {
+    try {
+      const result = await authService.partnerSignup(req.body);
+      res.status(201).json({
+        success: true,
+        message: result.message,
+        data: {
+          user: result.user,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        },
+      });
+    } catch (error: any) {
+      if (['Email and password are required', 'User already exists', 'Email not verified. Please verify OTP first.'].includes(error.message)) {
+        res.status(400).json({ success: false, message: error.message });
+      } else {
+        console.error('Partner signup error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+      }
+    }
+  }
+
   async signup(req: Request, res: Response) {
     try {
       const result = await authService.signup(req.body);

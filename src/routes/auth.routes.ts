@@ -23,6 +23,7 @@ const authLimiter = rateLimit({
 
 router.post('/send-otp', otpLimiter, authController.sendOtp);
 router.post('/signup', authLimiter, authController.signup);
+router.post('/partner-signup', authLimiter, authController.partnerSignup);
 router.post('/login', authLimiter, authController.login);
 router.post('/verify-otp', otpLimiter, authController.verifyOtp);
 router.post('/refresh-token', authLimiter, authController.refreshToken);
