@@ -1,8 +1,10 @@
 import cors from 'cors';
 import { config as envConfig } from './config';
 
+const rawOrigin = envConfig.CORS_ORIGIN?.replace(/\/+$/, '');
+
 export const corsOptions: cors.CorsOptions = {
-  origin: envConfig.CORS_ORIGIN,
+  origin: rawOrigin,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
 };
