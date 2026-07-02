@@ -13,7 +13,8 @@ export const upload = multer({
       const folderParam = req.query?.folder as string;
       const folder = folderParam === 'catalog' ? 'global/catelog' : 'global/documents';
       const safeFileName = file.originalname.replace(/[\/\\]/g, '_');
-      cb(null, 'aecciglobal/' + folder + '/' + Date.now().toString() + '-' + safeFileName);
+      const uniqueSuffix = Date.now().toString() + '-' + Math.round(Math.random() * 1e9);
+      cb(null, 'aecciglobal/' + folder + '/' + uniqueSuffix + '-' + safeFileName);
     },
   }),
 });

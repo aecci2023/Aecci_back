@@ -141,7 +141,7 @@ export class AuthService {
     'aadharNumber', 'internationalIds', 'expertiseAreas', 'sectorsOfInterest',
     'languagesSpoken', 'businessAssociation',
     'profilePicture', 'iecDocument', 'gstDocument', 'panDocument',
-    'companyProfileDocument', 'productCatalogue', 'documents',
+    'companyProfileDocument', 'uploadedFiles',
     'resubmit',
   ]);
 
@@ -381,9 +381,11 @@ export class AuthService {
   }
 
   private validateOnboardingData(data: any) {
-    const { userType, country, documents, legalStructure, yearEstablished, companySize, turnover, industrySector, businessAddress } = data;
+    const { userType, country, uploadedFiles, legalStructure, yearEstablished, companySize, turnover, industrySector, businessAddress } = data;
 
-    if (!documents || !Array.isArray(documents) || documents.length === 0) {
+    const hasDocument = uploadedFiles && Array.isArray(uploadedFiles) && uploadedFiles.some((f: any) => f.type === 'document');
+
+    if (!hasDocument) {
       throw new Error('At least one compliance document is required');
     }
 

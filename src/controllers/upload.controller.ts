@@ -16,6 +16,7 @@ export class UploadController {
         data: {
           url: file.location,
           key: file.key,
+          name: file.originalname,
         },
       });
     } catch (error) {

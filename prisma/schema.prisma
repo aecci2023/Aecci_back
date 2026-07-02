@@ -12,6 +12,12 @@ type InternationalId {
   idNumber String
 }
 
+type UploadedFile {
+  name String
+  url  String
+  type String // e.g. "product_catalogue", "document"
+}
+
 model User {
   id           String  @id @default(auto()) @map("_id") @db.ObjectId
   email          String  @unique
@@ -36,35 +42,36 @@ model User {
   slotsTotal      Int       @default(0)
   slotsRemaining  Int       @default(0)
 
-  // Phase 3: Company Profile (Business)
-  iecNumber                String?
-  gstNumber                String?
-  panNumber                String?
-  internationalBusinessIds InternationalId[]
-  websiteUrl               String?
-  linkedinUrl              String?
-  yearEstablished          String?
-  companySize              String?
-  turnover                 String?
-  industrySector           String?
-  businessAddress          String?
-  legalStructure           String?
+  // Onboarding Fields - Global Business
+  websiteUrl         String?
+  linkedinUrl        String?
+  yearEstablished    String?
+  companySize        String?
+  turnover           String?
+  industrySector     String?
+  businessAddress    String?
+  legalStructure     String?
+  businessRole       String[]
+  products           String[]
+  targetMarkets      String[]
+  keyCertifications  String[]
 
-  // Phase 3: Business Profile (Business)
-  businessRole      String[]
-  products          String[]
-  targetMarkets     String[]
-  keyCertifications String[]
-  experience        String?
-  objective         String?
-
-  // Phase 3: Profile (Individual)
-  professionalTitle   String?
-  nationality         String?
-  linkedinProfileUrl  String?
-  yearsOfExperience   String?
+  // Onboarding Fields - Global Individual
+  professionalTitle  String?
+  nationality        String?
+  linkedinProfileUrl String?
+  yearsOfExperience  String?
+  experience         String?
+  objective          String?
+  
+  // Specific Identifiers
+  iecNumber           String?
+  gstNumber           String?
+  panNumber           String?
   aadharNumber        String?
-  internationalIds InternationalId[]
+  internationalBusinessIds InternationalId[]
+  internationalIds    InternationalId[]
+
   expertiseAreas      String[]
   sectorsOfInterest   String[]
   languagesSpoken     String[]
@@ -80,8 +87,7 @@ model User {
   gstDocument            String?
   panDocument            String?
   companyProfileDocument String?
-  productCatalogue       String[]
-  documents              String[]
+  uploadedFiles          UploadedFile[]
 
   verificationStatus   String  @default("pending_verification") // pending_verification, approved, active, rejected
   rejectionReason      String?
