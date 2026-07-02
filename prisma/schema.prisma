@@ -14,13 +14,14 @@ type InternationalId {
 
 model User {
   id           String  @id @default(auto()) @map("_id") @db.ObjectId
-  email        String  @unique
-  mobileNumber String?
-  password     String?
-  fullName     String?
-  country      String?
-  userType     String?
-  companyName  String?
+  email          String  @unique
+  countryCode    String?
+  mobileNumber   String?
+  password       String?
+  fullName       String?
+  country        String?
+  userType       String?
+  companyName    String?
 
   // OTP Verification
   isEmailVerified   Boolean   @default(false)

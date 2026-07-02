@@ -131,7 +131,7 @@ export class AuthService {
 
   // Fields users are allowed to update via self-service profile update
   private readonly ALLOWED_PROFILE_FIELDS = new Set([
-    'fullName', 'mobileNumber', 'country', 'companyName', 'referralSource',
+    'fullName', 'countryCode', 'mobileNumber', 'country', 'companyName', 'referralSource',
     'iecNumber', 'gstNumber', 'panNumber', 'internationalBusinessIds',
     'websiteUrl', 'linkedinUrl', 'yearEstablished', 'companySize', 'turnover',
     'industrySector', 'businessAddress', 'legalStructure',
