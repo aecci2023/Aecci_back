@@ -48,6 +48,7 @@ model User {
   yearEstablished    String?
   companySize        String?
   turnover           String?
+  importVolume       String?
   industrySector     String?
   businessAddress    String?
   legalStructure     String?

@@ -18,6 +18,7 @@ router.patch('/:id/reject', authenticate, requireRole(['admin']), SessionControl
 router.post('/:id/summary', authenticate, requireRole(['partner', 'admin']), SessionController.submitSessionSummary);
 
 // Shared read routes
+router.get('/public', SessionController.getSessions);
 router.get('/', authenticate, SessionController.getSessions);
 router.get('/:id', authenticate, SessionController.getSessionById);
 

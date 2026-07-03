@@ -8,14 +8,28 @@ import { emailQueue } from '../queues/email.queue';
 
 export class AuthService {
   async sendOtp(userData: any): Promise<{ message: string }> {
-    const { email, fullName } = userData;
+    const { email, fullName, mobileNumber } = userData;
 
     if (!email) {
       throw new Error('Email is required');
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const orConditions: any[] = [{ email }];
+    if (mobileNumber) {
+      orConditions.push({ mobileNumber });
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: { OR: orConditions }
+    });
+
     if (existingUser) {
+      if (existingUser.email === email) {
+        throw new Error('User already exists with this email');
+      }
+      if (existingUser.mobileNumber === mobileNumber) {
+        throw new Error('User already exists with this mobile number');
+      }
       throw new Error('User already exists');
     }
 
@@ -252,6 +266,84 @@ export class AuthService {
     const { password: _, ...userToReturn } = newUser;
 
     return { user: userToReturn, accessToken, refreshToken, message: 'Partner registration submitted successfully' };
+  }
+
+  async importerSignup(userData: any): Promise<{ user: any; accessToken: string; refreshToken: string; message: string; sessionRegistration?: any }> {
+    const { email, password, sessionId, ...restData } = userData;
+
+    if (!email || !password) throw new Error('Email and password are required');
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) throw new Error('User already exists');
+
+    const verifiedKey = `otp_verified:${email}`;
+    const isVerified = await redis.get(verifiedKey);
+    if (!isVerified) throw new Error('Email not verified. Please verify OTP first.');
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    if (typeof restData.products === 'string') {
+      restData.products = restData.products.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+    if (typeof restData.targetMarkets === 'string') {
+      restData.targetMarkets = restData.targetMarkets.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        fullName: restData.fullName,
+        mobileNumber: restData.mobileNumber,
+        countryCode: restData.countryCode,
+        country: restData.country,
+        companyName: restData.companyName,
+        professionalTitle: restData.professionalTitle,
+        businessRole: restData.businessRole ? [restData.businessRole] : [],
+        importVolume: restData.importVolume,
+        products: restData.products || [],
+        targetMarkets: restData.targetMarkets || [],
+        referralSource: restData.referralSource || null,
+        isEmailVerified: true,
+        role: 'importer',
+        verificationStatus: 'approved',
+        slotsTotal: 3,
+        slotsRemaining: 3,
+        applicationNumber: `AECCI-IMP-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
+      },
+    });
+
+    let sessionRegistration = null;
+
+    if (sessionId) {
+       const session = await prisma.session.findUnique({ where: { id: sessionId } });
+       if (session) {
+         sessionRegistration = await prisma.sessionRegistration.create({
+           data: {
+             userId: newUser.id,
+             sessionId: session.id,
+             paymentStatus: 'free_slot',
+             paymentReference: `REF-${Math.floor(100000 + Math.random() * 900000)}`
+           }
+         });
+         await prisma.user.update({
+           where: { id: newUser.id },
+           data: { slotsRemaining: 2 }
+         });
+       }
+    }
+
+    await emailQueue.add('registration-success', {
+      type: 'sendRegistrationSubmitted',
+      payload: { email: newUser.email, fullName: newUser.fullName || 'Importer', userId: newUser.id }
+    });
+
+    await redis.del(verifiedKey);
+
+    const { accessToken, refreshToken } = this.generateTokens(newUser);
+    const { password: _, ...userToReturn } = newUser;
+
+    return { user: userToReturn, accessToken, refreshToken, message: 'Importer registration successful', sessionRegistration };
   }
 
   async refreshAccess(refreshToken: string): Promise<{ accessToken: string }> {
