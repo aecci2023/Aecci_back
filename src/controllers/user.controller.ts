@@ -76,4 +76,23 @@ export class UserController {
       res.status(500).json({ success: false, message: 'Failed to update verification status' });
     }
   }
+
+  static async completeTour(req: Request, res: Response) {
+    try {
+      const requestingUserId = (req as any).user?.id;
+      if (!requestingUserId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+
+      await UserService.completeTour(requestingUserId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Tour marked as completed',
+      });
+    } catch (error) {
+      console.error('Error completing tour:', error);
+      res.status(500).json({ success: false, message: 'Failed to complete tour' });
+    }
+  }
 }

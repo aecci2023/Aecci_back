@@ -21,6 +21,7 @@ export class UserService {
         userType: true,
         companyName: true,
         verificationStatus: true,
+        hasCompletedTour: true,
         iecDocument: true,
         gstDocument: true,
         panDocument: true,
@@ -70,6 +71,7 @@ export class UserService {
         userType: true,
         companyName: true,
         verificationStatus: true,
+        hasCompletedTour: true,
         iecDocument: true,
         gstDocument: true,
         panDocument: true,
@@ -148,5 +150,12 @@ export class UserService {
     }
 
     return user;
+  }
+
+  static async completeTour(userId: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { hasCompletedTour: true },
+    });
   }
 }

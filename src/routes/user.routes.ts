@@ -12,5 +12,7 @@ router.get('/:id', authenticate, UserController.getUserById);
 
 // Admin-only: update verification status
 router.patch('/:id/verification', authenticate, requireRole(['admin']), UserController.updateVerificationStatus);
+// Authenticated: mark tour as completed
+router.patch('/complete-tour', authenticate, UserController.completeTour);
 
 export default router;

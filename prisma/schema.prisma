@@ -93,6 +93,7 @@ model User {
   verificationStatus   String  @default("pending_verification") // pending_verification, approved, active, rejected
   rejectionReason      String?
   role                 String  @default("user") // user, admin, partner
+  hasCompletedTour     Boolean @default(false)
 
   // Post-Onboarding Partner & Pricing Flow
   partnerId           String?   @db.ObjectId
