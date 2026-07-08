@@ -1,6 +1,7 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import { config } from '../config/config';
+import { corsOptions } from '../config/cors.config';
 
 let ioInstance: SocketIOServer | null = null;
 
@@ -9,11 +10,7 @@ export class SocketService {
 
   constructor(server: HttpServer) {
     this.io = new SocketIOServer(server, {
-      cors: {
-        origin: config.CORS_ORIGIN,
-        methods: ['GET', 'POST'],
-        credentials: true,
-      }
+      cors: corsOptions
     });
 
     ioInstance = this.io;
