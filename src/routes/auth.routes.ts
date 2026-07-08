@@ -7,7 +7,7 @@ const router = Router();
 
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  max: 50, // Increased for testing
   message: { success: false, message: 'Too many OTP requests. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -15,7 +15,7 @@ const otpLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 100, // Increased for testing
   message: { success: false, message: 'Too many requests. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
