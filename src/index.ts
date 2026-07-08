@@ -18,7 +18,7 @@ import { config } from './config/config';
 
 dotenv.config();
 
-// Initialize BullMQ Workers
+// Initialize BullMQ Workers 
 import './queues/email.queue';
 import './queues/invoice.queue';
 
