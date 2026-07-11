@@ -12,6 +12,7 @@ import countryIntelligenceRoutes from './routes/country-intelligence.routes';
 import questionRoutes from './routes/question.routes';
 import auditRoutes from './routes/audit.routes';
 import adminRoutes from './routes/admin.routes';
+import jobApplicationRoutes from './routes/job-application.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { corsConfig } from './config/cors.config';
 import { config } from './config/config';
@@ -44,6 +45,7 @@ app.use('/api/country-intelligence', countryIntelligenceRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/job-applications', jobApplicationRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);
