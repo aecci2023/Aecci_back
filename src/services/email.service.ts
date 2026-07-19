@@ -64,6 +64,12 @@ export class EmailService {
     await this.sendMail(email, template.subject, template.text);
   }
 
+  // Interest Submitted
+  async sendInterestSubmitted(email: string, name: string) {
+    const template = emailTemplates.interestSubmitted(name);
+    await this.sendMail(email, template.subject, template.text);
+  }
+
   // 2. Registration Invitation
   async sendRegistrationInvitation(email: string, name: string, registrationLink: string) {
     const template = emailTemplates.registrationInvitation(name, registrationLink);

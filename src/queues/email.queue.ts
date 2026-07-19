@@ -12,6 +12,10 @@ const worker = new Worker('email-queue', async job => {
       await emailService.sendOTP(payload.email, payload.fullName, payload.otp);
       break;
 
+    case 'sendInterestSubmitted':
+      await emailService.sendInterestSubmitted(payload.email, payload.fullName);
+      break;
+
     case 'sendRegistrationSubmitted':
       await emailService.sendRegistrationSubmitted(payload.email, payload.fullName, payload.userId);
       break;

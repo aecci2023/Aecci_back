@@ -46,7 +46,7 @@ AECCI Screening Desk`,
 
   // --- MASTER EMAIL FLOW ---
   
-  // EMAIL 1
+  // 1. New Enquiry Received
   newEnquiryReceived: (name: string) => ({
     subject: "Thank You for Your Interest in AECCI Global Deal Room",
     text: `Dear ${name},
@@ -58,6 +58,19 @@ We are pleased to learn about your interest in the AECCI Global Deal Room.
 Our team will shortly review your requirements and guide you regarding the most suitable country access session.
 
 For any immediate assistance, please contact our Deal Room Support Team.
+
+Regards,
+AECCI Global Deal Room Team`,
+  }),
+
+  // Interest Submitted
+  interestSubmitted: (name: string) => ({
+    subject: "Interest Submitted – AECCI Global Deal Room",
+    text: `Dear ${name},
+
+Thank you for submitting your interest in the AECCI Global Deal Room.
+
+You will be notified when Global Connect is open, and then you will be able to log in.
 
 Regards,
 AECCI Global Deal Room Team`,

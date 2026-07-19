@@ -316,3 +316,25 @@ model JobApplication {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
+
+model InterestSubmission {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  companyName           String
+  email                 String
+  yearEstablished       String?
+  country               String?
+  sector                String?
+  contactPerson         String?
+  fullName              String?
+  cityState             String?
+  countryCode           String?
+  phoneWhatsapp         String?
+  yourCountry           String?
+  objectives            String[]
+  infoAccurate          Boolean  @default(false)
+  agreeTerms            Boolean  @default(false)
+  understandFacilitation Boolean @default(false)
+  shareInfo             Boolean  @default(false)
+
+  createdAt             DateTime @default(now())
+}
