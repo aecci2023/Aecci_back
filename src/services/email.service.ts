@@ -67,7 +67,17 @@ export class EmailService {
   // Interest Submitted
   async sendInterestSubmitted(email: string, name: string) {
     const template = emailTemplates.interestSubmitted(name);
-    await this.sendMail(email, template.subject, template.text);
+    try {
+      await transporter.sendMail({
+        from: 'ed@aecci.org.in',
+        to: email,
+        subject: template.subject,
+        text: template.text,
+      });
+      console.log(`Email successfully sent to ${email} from ed@aecci.org.in`);
+    } catch (error) {
+      console.error('Error sending interest submitted email:', error);
+    }
   }
 
   // Admin Notification for New Interest
