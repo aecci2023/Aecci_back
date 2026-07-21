@@ -1,18 +1,16 @@
 export const emailTemplates = {
   // --- CORE FUNCTIONAL TEMPLATES (Not in Master Flow but required for auth) ---
   otpEmail: (name: string, otp: string) => ({
-    subject: "Your OTP for AECCI Global Deal Room Registration",
+    subject: "Your AECCI Global Deal Room Registration OTP",
     text: `Dear ${name},
 
-Thank you for contacting the Asian Exporters Chamber of Commerce and Industry (AECCI).
+Your OTP for AECCI Global Deal Room registration is:
 
-We are pleased to learn about your interest in the AECCI Global Deal Room.
+${otp}
 
-Your One-Time Password (OTP) for registration is: ${otp}
+This OTP is valid for 15 minutes. Please do not share it with anyone.
 
-Please enter this OTP to proceed with your registration. This OTP is valid for 15 minutes.
-
-For any immediate assistance, please contact our Deal Room Support Team.
+If you did not request this OTP, you may safely ignore this email.
 
 Regards,
 AECCI Global Deal Room Team`,
