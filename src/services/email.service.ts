@@ -70,6 +70,24 @@ export class EmailService {
     await this.sendMail(email, template.subject, template.text);
   }
 
+  // Admin Notification for New Interest
+  async sendInterestAdminNotification(userEmail: string, name: string, role: string) {
+    const template = emailTemplates.interestAdminNotification(name, userEmail, role);
+    const adminEmail = 'ed@aecci.org.in';
+    
+    try {
+      await transporter.sendMail({
+        from: 'ed@aecci.org.in',
+        to: adminEmail,
+        subject: template.subject,
+        text: template.text,
+      });
+      console.log(`Admin notification email sent to ${adminEmail} from ed@aecci.org.in`);
+    } catch (error) {
+      console.error('Error sending admin notification:', error);
+    }
+  }
+
   // 2. Registration Invitation
   async sendRegistrationInvitation(email: string, name: string, registrationLink: string) {
     const template = emailTemplates.registrationInvitation(name, registrationLink);

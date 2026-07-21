@@ -76,6 +76,22 @@ Regards,
 AECCI Global Deal Room Team`,
   }),
 
+  // Admin Notification for New Interest
+  interestAdminNotification: (name: string, email: string, role: string) => ({
+    subject: `New Interest Submitted: ${role}`,
+    text: `A new interest form has been submitted on the AECCI Global Deal Room platform.
+
+Details:
+Name: ${name}
+Email: ${email}
+Category: ${role}
+
+Please log in to the admin panel to view the complete submission details.
+
+Regards,
+System Notification`,
+  }),
+
   // EMAIL 2
   registrationInvitation: (name: string, registrationLink: string) => ({
     subject: "Complete Your Registration – AECCI Global Deal Room",

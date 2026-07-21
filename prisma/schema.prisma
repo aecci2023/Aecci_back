@@ -319,9 +319,11 @@ model JobApplication {
 
 model InterestSubmission {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  companyName           String
+  category              String?
+  userType              String?
+  companyName           String?
   email                 String
-  yearEstablished       String?
+  emailAddress          String?
   country               String?
   sector                String?
   contactPerson         String?
@@ -331,10 +333,19 @@ model InterestSubmission {
   phoneWhatsapp         String?
   yourCountry           String?
   objectives            String[]
+  products              String?
+  targetMarkets         String[]
+  sourcingRequirements  String?
+  targetSourcingMarkets String[]
+  expertiseAreas        String?
+  sectorsOfInterest     String?
+  professionalTitle     String?
+  yearsOfExperience     String?
   infoAccurate          Boolean  @default(false)
   agreeTerms            Boolean  @default(false)
   understandFacilitation Boolean @default(false)
   shareInfo             Boolean  @default(false)
+  status                String   @default("pending")
 
   createdAt             DateTime @default(now())
 }

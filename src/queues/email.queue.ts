@@ -14,6 +14,9 @@ const worker = new Worker('email-queue', async job => {
 
     case 'sendInterestSubmitted':
       await emailService.sendInterestSubmitted(payload.email, payload.fullName);
+      if (payload.role) {
+        await emailService.sendInterestAdminNotification(payload.email, payload.fullName, payload.role);
+      }
       break;
 
     case 'sendRegistrationSubmitted':
