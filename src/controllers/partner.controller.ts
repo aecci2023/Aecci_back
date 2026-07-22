@@ -40,8 +40,24 @@ export class PartnerController {
       // Admin requests another user's profile, or partner requests their own
       const targetUserId = req.params.userId || req.user.id;
       
-      const profile = await PartnerService.getProfileByUserId(targetUserId);
+      let profile = await PartnerService.getProfileByUserId(targetUserId);
       
+      // If partner has no profile yet, auto-create one
+      if (!profile && targetUserId === req.user.id) {
+        const { prisma } = await import('../config/db.config');
+        await prisma.partnerProfile.create({
+          data: {
+            userId: targetUserId,
+            organization: '',
+            expertiseCountries: [],
+            expertiseSectors: [],
+            status: 'approved',
+            tier: 'Standard',
+          },
+        });
+        profile = await PartnerService.getProfileByUserId(targetUserId);
+      }
+
       if (!profile) {
         return res.status(404).json({ success: false, message: 'Partner profile not found' });
       }

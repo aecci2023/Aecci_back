@@ -401,4 +401,28 @@ Thank you for choosing AECCI.
 Regards,
 AECCI Customer Support Team`,
   }),
+
+  // Partner Welcome / Credentials Email
+  partnerWelcomeCredentials: (name: string, email: string, password: string, loginLink: string) => ({
+    subject: "Welcome to AECCI Global Deal Room – Your Partner Account is Ready",
+    text: `Dear ${name},
+
+We are delighted to welcome you to AECCI Global Deal Room, a global platform designed to connect businesses, experts, consultants and organizations through structured international collaboration.
+
+Your expertise will contribute towards helping businesses understand markets, regulations, opportunities and global trade requirements.
+
+Your login credentials:
+
+Email: ${email}
+Password: ${password}
+
+Please log in and complete your profile setup to activate your Partner Dashboard.
+
+Login here: ${loginLink}
+
+Important: Please change your password after your first login for security purposes.
+
+Regards,
+AECCI Global Deal Room Team`,
+  }),
 };

@@ -53,6 +53,10 @@ const worker = new Worker('email-queue', async job => {
       await emailService.sendAdminSummaryReady(payload.sessionId, payload.sessionTitle, payload.partnerName);
       break;
 
+    case 'sendPartnerWelcomeCredentials':
+      await emailService.sendPartnerWelcomeCredentials(payload.email, payload.fullName, payload.password, payload.loginLink);
+      break;
+
     default:
       console.warn(`Unknown email job type: ${type}`);
   }

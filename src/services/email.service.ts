@@ -196,6 +196,12 @@ export class EmailService {
     }
   }
 
+  // Partner Welcome Credentials
+  async sendPartnerWelcomeCredentials(email: string, name: string, password: string, loginLink: string) {
+    const template = emailTemplates.partnerWelcomeCredentials(name, email, password, loginLink);
+    await this.sendMail(email, template.subject, template.text);
+  }
+
   // 9. Country Brief Available
   async sendCountryBriefAvailable(email: string, name: string, downloadLink: string) {
     const template = emailTemplates.countryBriefAvailable(name, downloadLink);

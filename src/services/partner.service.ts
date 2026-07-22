@@ -58,6 +58,7 @@ export class PartnerService {
             linkedinProfileUrl: true, websiteUrl: true,
             profilePicture: true, applicationNumber: true,
             verificationStatus: true, createdAt: true,
+            companyName: true, countryCode: true,
           }
         }
       }
