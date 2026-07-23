@@ -1,3 +1,16 @@
+/**
+ * Script: Import existing collaboration partners from old database JSON
+ * 
+ * Logic:
+ * - Reads aecci_database.clients.json (collaborators)
+ * - For each collaborator:
+ *   - Generate password: first 4 letters of email (before @) + @123
+ *   - If user with that email exists → update their role to 'partner', set password, update data
+ *   - If user doesn't exist → create new user + partner profile
+ * 
+ * Run: npx ts-node scripts/import-collaboration-partners.ts
+ */
+
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import * as fs from 'fs';
@@ -6,157 +19,168 @@ import * as path from 'path';
 const prisma = new PrismaClient();
 
 interface OldClient {
-  _id: { $oid: string };
   email: string;
-  password: string;
+  companyName: string;
   firstName: string;
   surName: string;
-  companyName: string;
   country: string;
-  role: string;
+  city: string;
+  state: string;
   businessCategory: string;
-  phoneNo: number | string;
-  telephoneNo?: string;
-  address1?: string;
-  address2?: string;
-  city?: string;
-  state?: string;
-  pinCode?: string | number;
+  role: string;
+  phoneNo: number | { $numberLong: string };
+  telephoneNo: string;
+  address1: string;
+  address2: string;
   memberShipNo?: string;
-  inputNumber?: string;
-  gstNo?: string;
-  isApproved?: boolean;
   validUpTo?: string;
-  approvedAt?: string;
-  createdAt?: { $date: string } | string;
+  isAvailable?: boolean;
 }
 
-function decodeHtmlEntities(str: string): string {
-  return str
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+function generatePassword(email: string): string {
+  const localPart = email.split('@')[0];
+  const letters = localPart.replace(/[^a-zA-Z]/g, '').substring(0, 4).toLowerCase();
+  return `${letters}@123`;
 }
 
-function buildAddress(c: OldClient): string {
-  const parts = [c.address1, c.address2, c.city, c.state, String(c.pinCode ?? '')]
-    .map(p => (p ?? '').trim())
-    .filter(Boolean);
-  // Deduplicate consecutive identical parts
-  const deduped = parts.filter((p, i) => i === 0 || p !== parts[i - 1]);
-  return deduped.join(', ');
-}
-
-function inferSectors(category: string): string[] {
-  const map: Record<string, string[]> = {
-    Lawyer: ['Legal Services', 'Arbitration', 'Corporate Law'],
-    'Export Adviser': ['Trade Advisory', 'Export Consulting'],
-    'New Market consultant': ['Market Entry', 'Business Development'],
-    Other: [],
-  };
-  return map[category] ?? [category];
+function getPhoneNumber(phoneNo: number | { $numberLong: string }): string {
+  if (typeof phoneNo === 'object' && phoneNo.$numberLong) {
+    return phoneNo.$numberLong;
+  }
+  return String(phoneNo);
 }
 
 async function main() {
-  const dataPath = path.resolve(__dirname, '../../aecci_database.clients.json');
-  if (!fs.existsSync(dataPath)) {
-    console.error(`❌ File not found: ${dataPath}`);
+  const jsonPath = path.resolve(__dirname, '../../aecci_database.clients.json');
+  
+  if (!fs.existsSync(jsonPath)) {
+    console.error('❌ File not found:', jsonPath);
     process.exit(1);
   }
 
-  const raw = fs.readFileSync(dataPath, 'utf-8');
-  const clients: OldClient[] = JSON.parse(raw);
+  const rawData = fs.readFileSync(jsonPath, 'utf-8');
+  const clients: OldClient[] = JSON.parse(rawData);
 
-  console.log(`📂 Loaded ${clients.length} records from export`);
-  console.log('🔑 Hashing Partner@123 password...');
-  const hashedPassword = await bcrypt.hash('Partner@123', 10);
+  console.log(`\n📋 Found ${clients.length} collaboration partners to import\n`);
 
   let created = 0;
+  let updated = 0;
   let skipped = 0;
   let errors = 0;
 
-  for (const c of clients) {
+  for (const client of clients) {
     try {
-      const email = c.email?.trim().toLowerCase();
-      if (!email) {
-        console.warn(`  ⚠️  Skipping record with no email (id: ${c._id?.$oid})`);
-        skipped++;
-        continue;
+      const email = client.email.trim().toLowerCase();
+      const rawPassword = generatePassword(email);
+      const hashedPassword = await bcrypt.hash(rawPassword, 10);
+      const fullName = `${client.firstName} ${client.surName}`.trim();
+      const phone = getPhoneNumber(client.phoneNo);
+
+      // Check if user exists
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+
+      if (existingUser) {
+        // Update existing user
+        await prisma.user.update({
+          where: { email },
+          data: {
+            password: hashedPassword,
+            role: 'partner',
+            verificationStatus: 'active',
+            isEmailVerified: true,
+            fullName: fullName || existingUser.fullName,
+            companyName: client.companyName || existingUser.companyName,
+            country: client.country || existingUser.country,
+            mobileNumber: phone || existingUser.mobileNumber,
+            professionalTitle: client.role || existingUser.professionalTitle,
+          },
+        });
+
+        // Ensure partner profile exists
+        const existingProfile = await prisma.partnerProfile.findUnique({ where: { userId: existingUser.id } });
+        if (!existingProfile) {
+          await prisma.partnerProfile.create({
+            data: {
+              userId: existingUser.id,
+              organization: client.companyName || '',
+              expertiseCountries: client.country ? [client.country] : [],
+              expertiseSectors: client.businessCategory ? [client.businessCategory] : [],
+              status: 'approved',
+              tier: 'Standard',
+            },
+          });
+        } else {
+          await prisma.partnerProfile.update({
+            where: { userId: existingUser.id },
+            data: {
+              organization: client.companyName || existingProfile.organization,
+              expertiseCountries: client.country && !existingProfile.expertiseCountries.includes(client.country)
+                ? [...existingProfile.expertiseCountries, client.country]
+                : existingProfile.expertiseCountries,
+              expertiseSectors: client.businessCategory && !existingProfile.expertiseSectors.includes(client.businessCategory)
+                ? [...existingProfile.expertiseSectors, client.businessCategory]
+                : existingProfile.expertiseSectors,
+              status: 'approved',
+            },
+          });
+        }
+
+        updated++;
+        console.log(`✏️  Updated: ${email} (${fullName}) — pass: ${rawPassword}`);
+      } else {
+        // Create new user
+        const newUser = await prisma.user.create({
+          data: {
+            email,
+            password: hashedPassword,
+            fullName,
+            companyName: client.companyName || null,
+            country: client.country || null,
+            mobileNumber: phone || null,
+            professionalTitle: client.role || null,
+            isEmailVerified: true,
+            role: 'partner',
+            verificationStatus: 'active',
+            userType: 'Individual',
+            applicationNumber: client.memberShipNo || `AECCI-PARTNER-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`,
+          },
+        });
+
+        // Create partner profile
+        await prisma.partnerProfile.create({
+          data: {
+            userId: newUser.id,
+            organization: client.companyName || '',
+            expertiseCountries: client.country ? [client.country] : [],
+            expertiseSectors: client.businessCategory ? [client.businessCategory] : [],
+            status: 'approved',
+            tier: 'Standard',
+          },
+        });
+
+        created++;
+        console.log(`✅ Created: ${email} (${fullName}) — pass: ${rawPassword}`);
       }
-
-      const existing = await prisma.user.findUnique({ where: { email } });
-      if (existing) {
-        console.log(`  ⏭  Skipped (already exists): ${email}`);
-        skipped++;
-        continue;
-      }
-
-      const fullName = `${(c.firstName ?? '').trim()} ${(c.surName ?? '').trim()}`.trim();
-      const country = decodeHtmlEntities((c.country ?? '').trim());
-      const companyName = decodeHtmlEntities((c.companyName ?? '').trim());
-      const businessAddress = buildAddress(c);
-      const mobileNumber = c.phoneNo ? String(c.phoneNo) : (c.telephoneNo ?? undefined);
-      const applicationNumber = c.memberShipNo ?? c.gstNo ?? undefined;
-      const createdAtRaw = c.createdAt;
-      const createdAt = typeof createdAtRaw === 'object' && createdAtRaw !== null
-        ? new Date((createdAtRaw as { $date: string }).$date)
-        : createdAtRaw
-          ? new Date(createdAtRaw as string)
-          : undefined;
-
-      const user = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          fullName,
-          companyName,
-          country,
-          mobileNumber,
-          businessAddress,
-          applicationNumber,
-          professionalTitle: (c.role ?? '').trim(),
-          industrySector: (c.businessCategory ?? '').trim(),
-          role: 'partner',
-          userType: 'business',
-          verificationStatus: 'active',
-          isEmailVerified: true,
-          ...(createdAt ? { createdAt } : {}),
-        },
-      });
-
-      const agreementDate = c.approvedAt ? new Date(c.approvedAt) : undefined;
-      const validUpTo = c.validUpTo ? new Date(c.validUpTo) : undefined;
-
-      await prisma.partnerProfile.create({
-        data: {
-          userId: user.id,
-          organization: companyName,
-          expertiseCountries: country ? [country] : [],
-          expertiseSectors: inferSectors(c.businessCategory ?? ''),
-          tier: 'Standard',
-          status: 'active',
-          signedAgreement: true,
-          ...(agreementDate ? { agreementDate } : {}),
-          // Store membership validity as availability note via bio
-          bio: validUpTo
-            ? `Collaboration member. Membership valid up to: ${validUpTo.toISOString().split('T')[0]}`
-            : 'Collaboration member.',
-        },
-      });
-
-      console.log(`  ✅ Created: ${fullName} <${email}> — ${country}`);
-      created++;
     } catch (err: any) {
-      console.error(`  ❌ Error for ${c.email}: ${err.message}`);
       errors++;
+      console.error(`❌ Error for ${client.email}: ${err.message}`);
     }
   }
 
-  console.log(`\n📊 Import complete — ${created} created, ${skipped} skipped, ${errors} errors`);
+  console.log(`\n========================================`);
+  console.log(`📊 Import Summary:`);
+  console.log(`   Created: ${created}`);
+  console.log(`   Updated: ${updated}`);
+  console.log(`   Skipped: ${skipped}`);
+  console.log(`   Errors:  ${errors}`);
+  console.log(`   Total:   ${clients.length}`);
+  console.log(`========================================\n`);
+
+  await prisma.$disconnect();
 }
 
-main()
-  .catch(e => { console.error(e); process.exit(1); })
-  .finally(() => prisma.$disconnect());
+main().catch((err) => {
+  console.error('Fatal error:', err);
+  prisma.$disconnect();
+  process.exit(1);
+});
