@@ -8,15 +8,11 @@ export const submitInterest = async (req: Request, res: Response) => {
   try {
     const data = req.body;
 
+    // Dedup on the primary email only. Phone numbers and the secondary
+    // email field may now be reused (restriction removed), so they are no
+    // longer part of the duplicate check.
     const existingSubmission = await prisma.interestSubmission.findFirst({
-      where: {
-        OR: [
-          { email: data.email },
-          ...(data.emailAddress ? [{ emailAddress: data.emailAddress }] : []),
-          ...(data.phoneWhatsapp ? [{ phoneWhatsapp: data.phoneWhatsapp }] : []),
-          ...(data.contactPerson ? [{ contactPerson: data.contactPerson }] : [])
-        ]
-      }
+      where: { email: data.email }
     });
 
     if (existingSubmission) {

@@ -62,16 +62,28 @@ AECCI Global Deal Room Team`,
   }),
 
   // Interest Submitted
-  interestSubmitted: (name: string) => ({
-    subject: "Interest Submitted – AECCI Global Deal Room",
-    text: `Dear ${name},
+  interestSubmitted: (_name: string) => ({
+    subject: "Welcome to AECCI Global Deal Room – Registration Received",
+    text: `Dear Sir/Madam,
 
-Thank you for submitting your interest in the AECCI Global Deal Room.
+Greetings from AECCI Global Deal Room (GDR).
 
-You will be notified when Global Connect is open, and then you will be able to log in.
+Thank you for your interest in joining AECCI Global Deal Room, a platform designed to connect businesses with global opportunities, expert guidance and international networks.
 
-Regards,
-AECCI Global Deal Room Team`,
+We have successfully received your registration. Our team is currently organising upcoming country-focused business sessions and curated networking opportunities based on participant interests.
+
+You will receive session details, availability and participation guidelines once the relevant opportunities are scheduled.
+
+We look forward to welcoming you to the AECCI Global Deal Room ecosystem.
+
+Connect • Collaborate • Grow Globally
+
+Warm Regards,
+Global Deal Room Team
+Asian Exporters' Chamber of Commerce & Industry (AECCI)
+
+🌐 www.aecci.org.in
+Terms & Conditions Apply`,
   }),
 
   // Admin Notification for New Interest

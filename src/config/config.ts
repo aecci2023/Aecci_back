@@ -23,5 +23,11 @@ export const config = {
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID as string,
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET as string,
 
+  // TechMore SMS Configuration
+  TECHMORE_AUTH_KEY: process.env.TECHMORE_AUTH_KEY as string,
+  TECHMORE_SENDER_ID: process.env.TECHMORE_SENDER_ID as string,
+  TECHMORE_ROUTE: process.env.TECHMORE_ROUTE as string,
+  TECHMORE_TEMPLATE_ID: process.env.TECHMORE_TEMPLATE_ID as string,
+
   REDIS_URL: process.env.REDIS_URL as string,
 };

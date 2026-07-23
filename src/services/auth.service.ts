@@ -5,6 +5,7 @@ import { config } from '../config/config';
 import { emailService } from './email.service';
 import { redis } from '../config/redis.config';
 import { emailQueue } from '../queues/email.queue';
+import { smsService } from './sms.service';
 
 export class AuthService {
   async sendOtp(userData: any): Promise<{ message: string }> {
@@ -383,6 +384,7 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
+    /* TEMPORARY COMMENT ADMIN OTP
     if (user.role === 'admin') {
       if (!otp) {
         const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -397,7 +399,15 @@ export class AuthService {
           type: 'sendOTP',
           payload: { email, fullName: user.fullName || 'Admin', otp: emailOtp }
         });
-        return { requiresOtp: true, message: 'OTP sent to email for admin verification' };
+
+        if (user.mobileNumber) {
+          // Send SMS asynchronously to not block the request
+          smsService.sendLoginOtpSms(user.mobileNumber, emailOtp).catch(err => {
+            console.error('Failed to send admin login OTP SMS:', err);
+          });
+        }
+
+        return { requiresOtp: true, message: 'OTP sent to email and SMS for admin verification' };
       } else {
         const storedOtp = await redis.get(`admin_otp:${email}`);
         if (!storedOtp || storedOtp !== otp) {
@@ -406,6 +416,7 @@ export class AuthService {
         await redis.del(`admin_otp:${email}`);
       }
     }
+    */
 
     const { accessToken, refreshToken } = this.generateTokens(user);
     const { password: _, ...userToReturn } = user;

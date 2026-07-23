@@ -12,12 +12,18 @@ const worker = new Worker('email-queue', async job => {
       await emailService.sendOTP(payload.email, payload.fullName, payload.otp);
       break;
 
-    case 'sendInterestSubmitted':
-      await emailService.sendInterestSubmitted(payload.email, payload.fullName);
+    case 'sendInterestSubmitted': {
+      // Auto-reply goes to all roles EXCEPT collaborators (Partner / Collaborator category).
+      const isCollaborator = String(payload.role || '').trim().toLowerCase() === 'partner';
+      if (!isCollaborator) {
+        await emailService.sendInterestSubmitted(payload.email, payload.fullName);
+      }
+      // Admin notification still fires for every submission, including collaborators.
       if (payload.role) {
         await emailService.sendInterestAdminNotification(payload.email, payload.fullName, payload.role);
       }
       break;
+    }
 
     case 'sendRegistrationSubmitted':
       await emailService.sendRegistrationSubmitted(payload.email, payload.fullName, payload.userId);

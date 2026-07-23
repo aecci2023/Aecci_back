@@ -20,14 +20,14 @@ type UploadedFile {
 
 model User {
   id           String  @id @default(auto()) @map("_id") @db.ObjectId
-  email          String  @unique
-  countryCode    String?
-  mobileNumber   String?
-  password       String?
-  fullName       String?
-  country        String?
-  userType       String?
-  companyName    String?
+  email        String  @unique
+  countryCode  String?
+  mobileNumber String?
+  password     String?
+  fullName     String?
+  country      String?
+  userType     String?
+  companyName  String?
 
   // OTP Verification
   isEmailVerified   Boolean   @default(false)
@@ -36,26 +36,26 @@ model User {
   applicationNumber String?
 
   // Subscription Info
-  planName        String?   // "explorer", "growth", "market_entry", "enterprise"
-  planActive      Boolean   @default(false)
-  planExpiresAt   DateTime?
-  slotsTotal      Int       @default(0)
-  slotsRemaining  Int       @default(0)
+  planName       String? // "explorer", "growth", "market_entry", "enterprise"
+  planActive     Boolean   @default(false)
+  planExpiresAt  DateTime?
+  slotsTotal     Int       @default(0)
+  slotsRemaining Int       @default(0)
 
   // Onboarding Fields - Global Business
-  websiteUrl         String?
-  linkedinUrl        String?
-  yearEstablished    String?
-  companySize        String?
-  turnover           String?
-  importVolume       String?
-  industrySector     String?
-  businessAddress    String?
-  legalStructure     String?
-  businessRole       String[]
-  products           String[]
-  targetMarkets      String[]
-  keyCertifications  String[]
+  websiteUrl        String?
+  linkedinUrl       String?
+  yearEstablished   String?
+  companySize       String?
+  turnover          String?
+  importVolume      String?
+  industrySector    String?
+  businessAddress   String?
+  legalStructure    String?
+  businessRole      String[]
+  products          String[]
+  targetMarkets     String[]
+  keyCertifications String[]
 
   // Onboarding Fields - Global Individual
   professionalTitle  String?
@@ -64,23 +64,23 @@ model User {
   yearsOfExperience  String?
   experience         String?
   objective          String?
-  
-  // Specific Identifiers
-  iecNumber           String?
-  gstNumber           String?
-  panNumber           String?
-  aadharNumber        String?
-  internationalBusinessIds InternationalId[]
-  internationalIds    InternationalId[]
 
-  expertiseAreas      String[]
-  sectorsOfInterest   String[]
-  languagesSpoken     String[]
+  // Specific Identifiers
+  iecNumber                String?
+  gstNumber                String?
+  panNumber                String?
+  aadharNumber             String?
+  internationalBusinessIds InternationalId[]
+  internationalIds         InternationalId[]
+
+  expertiseAreas    String[]
+  sectorsOfInterest String[]
+  languagesSpoken   String[]
 
   // Optional registration fields
-  referralSource         String?
-  businessAssociation    String?
-  reportsUsed            Int       @default(0)
+  referralSource      String?
+  businessAssociation String?
+  reportsUsed         Int     @default(0)
 
   profilePicture         String?
   // Documents
@@ -90,10 +90,10 @@ model User {
   companyProfileDocument String?
   uploadedFiles          UploadedFile[]
 
-  verificationStatus   String  @default("pending_verification") // pending_verification, approved, active, rejected
-  rejectionReason      String?
-  role                 String  @default("user") // user, admin, partner
-  hasCompletedTour     Boolean @default(false)
+  verificationStatus String  @default("pending_verification") // pending_verification, approved, active, rejected
+  rejectionReason    String?
+  role               String  @default("user") // user, admin, partner
+  hasCompletedTour   Boolean @default(false)
 
   // Post-Onboarding Partner & Pricing Flow
   partnerId           String?   @db.ObjectId
@@ -103,18 +103,22 @@ model User {
   assignedPartnerSlot DateTime?
 
   // New Relations for Deal Room Flow
-  sessionsHosted    Session[]             @relation("SessionHost")
-  sessionsClient    Session[]             @relation("SessionClient")
-  registrations     SessionRegistration[]
-  questionsAsked    Question[]            @relation("QuestionAuthor")
-  questionsAssigned Question[]            @relation("QuestionAssignee")
-  reports           OpportunityReport[]
+  sessionsHosted        Session[]              @relation("SessionHost")
+  sessionsClient        Session[]              @relation("SessionClient")
+  registrations         SessionRegistration[]
+  questionsAsked        Question[]             @relation("QuestionAuthor")
+  questionsAssigned     Question[]             @relation("QuestionAssignee")
+  reports               OpportunityReport[]
   servicePurchases      ServicePurchase[]
   subscriptionPurchases SubscriptionPurchase[]
-  messagesSent          Message[]             @relation("MessageSender")
-  messagesReceived      Message[]             @relation("MessageReceiver")
+  messagesSent          Message[]              @relation("MessageSender")
+  messagesReceived      Message[]              @relation("MessageReceiver")
   auditLogs             AuditLog[]
   partnerProfile        PartnerProfile?
+
+  // Deal Room availability (partner offers slots / client books slots)
+  availabilitySlots AvailabilitySlot[] @relation("PartnerAvailability")
+  slotBookings      AvailabilitySlot[] @relation("SlotBooking")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -136,9 +140,9 @@ model Session {
   partnerId String @db.ObjectId
   partner   User   @relation("SessionHost", fields: [partnerId], references: [id])
 
-  clientId      String?  @db.ObjectId
-  client        User?    @relation("SessionClient", fields: [clientId], references: [id])
-  questionnaire String?
+  clientId           String? @db.ObjectId
+  client             User?   @relation("SessionClient", fields: [clientId], references: [id])
+  questionnaire      String?
   postSessionSummary String?
 
   registrations SessionRegistration[]
@@ -280,7 +284,10 @@ model PartnerProfile {
 
   // Setup Info
   bio          String?
-  availability Json? // Array of available slots/days
+  availability Json? // DEPRECATED legacy weekly/day availability — replaced by AvailabilitySlot model
+
+  // Deal Room availability gate — set the first time the partner saves slots
+  availabilityConfiguredAt DateTime?
 
   // Legal
   signedAgreement Boolean   @default(false)
@@ -290,16 +297,50 @@ model PartnerProfile {
   updatedAt DateTime @updatedAt
 }
 
+// Discrete, bookable availability slots offered by a partner inside the Deal Room.
+// Times are authored in IST but persisted as absolute UTC instants (startsAt/endsAt)
+// so booking/comparison is timezone-safe. `date` + `startTime`/`endTime` keep the
+// original IST wall-clock values for display and editing.
+model AvailabilitySlot {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  partnerId String @db.ObjectId
+  partner   User   @relation("PartnerAvailability", fields: [partnerId], references: [id], onDelete: Cascade)
+
+  date      String // IST calendar date "YYYY-MM-DD"
+  startTime String // IST wall-clock "HH:mm"
+  endTime   String // IST wall-clock "HH:mm"
+
+  startsAt        DateTime // absolute UTC instant of slot start
+  endsAt          DateTime // absolute UTC instant of slot end
+  durationMinutes Int
+
+  status String @default("open") // open, booked, blocked
+
+  // Booking info (set when a client reserves the slot)
+  bookedById String?   @db.ObjectId
+  bookedBy   User?     @relation("SlotBooking", fields: [bookedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  bookedAt   DateTime?
+  note       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([partnerId, startsAt])
+  @@index([partnerId, date])
+  @@index([partnerId, status])
+}
+
 model SubscriptionPurchase {
   id               String   @id @default(auto()) @map("_id") @db.ObjectId
   userId           String   @db.ObjectId
   user             User     @relation(fields: [userId], references: [id])
-  planName         String   // "explorer", "growth", "market_entry", "enterprise"
+  planName         String // "explorer", "growth", "market_entry", "enterprise"
   amount           Float
   currency         String   @default("INR")
   paymentStatus    String   @default("pending") // pending, paid, failed
-  paymentReference String?  // Razorpay payment ID
-  orderId          String?  // Razorpay order ID
+  paymentReference String? // Razorpay payment ID
+  orderId          String? // Razorpay order ID
   invoiceUrl       String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -318,34 +359,34 @@ model JobApplication {
 }
 
 model InterestSubmission {
-  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  category              String?
-  userType              String?
-  companyName           String?
-  email                 String
-  emailAddress          String?
-  country               String?
-  sector                String?
-  contactPerson         String?
-  fullName              String?
-  cityState             String?
-  countryCode           String?
-  phoneWhatsapp         String?
-  yourCountry           String?
-  objectives            String[]
-  products              String?
-  targetMarkets         String[]
-  sourcingRequirements  String?
-  targetSourcingMarkets String[]
-  expertiseAreas        String?
-  sectorsOfInterest     String?
-  professionalTitle     String?
-  yearsOfExperience     String?
-  infoAccurate          Boolean  @default(false)
-  agreeTerms            Boolean  @default(false)
-  understandFacilitation Boolean @default(false)
-  shareInfo             Boolean  @default(false)
-  status                String   @default("pending")
+  id                     String   @id @default(auto()) @map("_id") @db.ObjectId
+  category               String?
+  userType               String?
+  companyName            String?
+  email                  String
+  emailAddress           String?
+  country                String?
+  sector                 String?
+  contactPerson          String?
+  fullName               String?
+  cityState              String?
+  countryCode            String?
+  phoneWhatsapp          String?
+  yourCountry            String?
+  objectives             String[]
+  products               String?
+  targetMarkets          String[]
+  sourcingRequirements   String?
+  targetSourcingMarkets  String[]
+  expertiseAreas         String?
+  sectorsOfInterest      String?
+  professionalTitle      String?
+  yearsOfExperience      String?
+  infoAccurate           Boolean  @default(false)
+  agreeTerms             Boolean  @default(false)
+  understandFacilitation Boolean  @default(false)
+  shareInfo              Boolean  @default(false)
+  status                 String   @default("pending")
 
-  createdAt             DateTime @default(now())
+  createdAt DateTime @default(now())
 }

@@ -32,4 +32,11 @@ router.put('/setup', authenticate, requireRole(['partner']), PartnerController.s
 // View own partner profile
 router.get('/me', authenticate, requireRole(['partner']), PartnerController.getPartnerProfile);
 
+// Deal Room availability (date-wise IST slots)
+router.get('/availability', authenticate, requireRole(['partner']), PartnerController.getMyAvailability);
+router.put('/availability', authenticate, requireRole(['partner']), PartnerController.saveMyAvailability);
+
+// Read a partner's open bookable slots (clients booking a deal room)
+router.get('/:partnerId/open-slots', authenticate, PartnerController.getPartnerOpenSlots);
+
 export default router;

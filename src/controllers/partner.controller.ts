@@ -112,6 +112,41 @@ export class PartnerController {
     }
   }
 
+  static async getMyAvailability(req: AuthenticatedRequest, res: Response) {
+    try {
+      const slots = await PartnerService.getAvailability(req.user.id);
+      res.status(200).json({ success: true, data: slots });
+    } catch (error: any) {
+      console.error('Error fetching availability:', error);
+      res.status(500).json({ success: false, message: error.message || 'Failed to fetch availability' });
+    }
+  }
+
+  static async saveMyAvailability(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { slots } = req.body;
+      if (!Array.isArray(slots)) {
+        return res.status(400).json({ success: false, message: 'slots must be an array' });
+      }
+      const saved = await PartnerService.saveAvailability(req.user.id, slots);
+      res.status(200).json({ success: true, message: 'Availability saved', data: saved });
+    } catch (error: any) {
+      console.error('Error saving availability:', error);
+      res.status(400).json({ success: false, message: error.message || 'Failed to save availability' });
+    }
+  }
+
+  static async getPartnerOpenSlots(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { partnerId } = req.params;
+      const slots = await PartnerService.getPartnerOpenSlots(partnerId as string);
+      res.status(200).json({ success: true, data: slots });
+    } catch (error: any) {
+      console.error('Error fetching partner open slots:', error);
+      res.status(500).json({ success: false, message: error.message || 'Failed to fetch partner slots' });
+    }
+  }
+
   static async createPartnerManually(req: Request, res: Response) {
     try {
       const data = req.body;
